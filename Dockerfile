@@ -11,8 +11,8 @@ RUN npm ci --legacy-peer-deps || npm install --legacy-peer-deps
 COPY frontend/ ./
 # Set production environment for React build
 ENV NODE_ENV=production
-ENV REACT_APP_API_URL=/api
 ENV PUBLIC_URL=/
+# Don't set REACT_APP_API_URL so it uses window.location.origin in production
 RUN npm run build
 
 # Main application stage
