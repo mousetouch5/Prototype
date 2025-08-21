@@ -54,6 +54,12 @@ class ClickUpAccount extends Model
         return $this->hasMany(SyncConfiguration::class, 'target_account_id');
     }
 
+    public function syncConfigurations()
+    {
+        return SyncConfiguration::where('source_account_id', $this->id)
+            ->orWhere('target_account_id', $this->id);
+    }
+
     public function setAccessTokenAttribute($value): void
     {
         $this->attributes['access_token'] = Crypt::encryptString($value);

@@ -45,11 +45,20 @@ const ClickUpAccounts: React.FC<Props> = ({ accounts, onUpdate }) => {
   const handleDelete = async (id: number) => {
     if (!window.confirm('Are you sure you want to delete this account?')) return;
     
+    setLoading(true);
+    setError('');
+    
     try {
       await clickUpApi.deleteAccount(id);
       onUpdate();
-    } catch (err) {
+      alert('Account deleted successfully!');
+    } catch (err: any) {
       console.error('Failed to delete account:', err);
+      const errorMessage = err.response?.data?.message || err.response?.data?.error || 'Failed to delete account';
+      setError(errorMessage);
+      alert(`Error: ${errorMessage}`);
+    } finally {
+      setLoading(false);
     }
   };
 

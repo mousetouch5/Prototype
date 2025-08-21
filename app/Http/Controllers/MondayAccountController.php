@@ -105,10 +105,25 @@ class MondayAccountController extends Controller
 
     public function destroy(MondayAccount $account)
     {
-        $this->authorize('delete', $account);
-        $account->delete();
+        try {
+            $this->authorize('delete', $account);
+            
+            // Check if account is being used in sync configurations
+            if ($account->syncConfigurations()->count() > 0) {
+                return response()->json([
+                    'error' => 'Cannot delete account that is being used in sync configurations. Please delete the sync configurations first.'
+                ], 422);
+            }
+            
+            $account->delete();
 
-        return response()->json(['message' => 'Account deleted successfully']);
+            return response()->json(['message' => 'Account deleted successfully']);
+        } catch (\Exception $e) {
+            \Log::error('Failed to delete Monday account: ' . $e->getMessage());
+            return response()->json([
+                'error' => 'Failed to delete account. Please try again.'
+            ], 500);
+        }
     }
 
     public function testConnection(MondayAccount $account)

@@ -43,8 +43,11 @@ const SyncConfigurations: React.FC<Props> = ({ configurations, accounts, onUpdat
     try {
       await syncApi.deleteConfiguration(id);
       onUpdate();
-    } catch (err) {
+      alert('Configuration deleted successfully!');
+    } catch (err: any) {
       console.error('Failed to delete configuration:', err);
+      const errorMessage = err.response?.data?.message || err.response?.data?.error || 'Failed to delete configuration';
+      alert(`Error: ${errorMessage}`);
     }
   };
 

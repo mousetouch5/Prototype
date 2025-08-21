@@ -103,10 +103,25 @@ class SyncConfigurationController extends Controller
 
     public function destroy(SyncConfiguration $configuration)
     {
-        $this->authorize('delete', $configuration);
-        $configuration->delete();
+        try {
+            $this->authorize('delete', $configuration);
+            
+            // Stop any running syncs first
+            if ($configuration->is_syncing) {
+                return response()->json([
+                    'error' => 'Cannot delete configuration while sync is in progress. Please wait for sync to complete.'
+                ], 422);
+            }
+            
+            $configuration->delete();
 
-        return response()->json(['message' => 'Configuration deleted successfully']);
+            return response()->json(['message' => 'Configuration deleted successfully']);
+        } catch (\Exception $e) {
+            \Log::error('Failed to delete sync configuration: ' . $e->getMessage());
+            return response()->json([
+                'error' => 'Failed to delete configuration. Please try again.'
+            ], 500);
+        }
     }
 
     public function syncNow(SyncConfiguration $configuration)
