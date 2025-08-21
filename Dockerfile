@@ -12,6 +12,7 @@ RUN apt-get update && apt-get install -y \
     libxml2-dev \
     libpq-dev \
     libzip-dev \
+    postgresql-client \
     zip \
     unzip \
     nginx \
@@ -44,9 +45,6 @@ COPY docker/php-fpm.conf /usr/local/etc/php-fpm.d/www.conf
 # Copy supervisor configuration
 COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
-# Generate application key if not set
-RUN php artisan key:generate --force || true
-
 # Create storage and bootstrap/cache directories with proper permissions
 RUN mkdir -p storage/app/public storage/framework/cache storage/framework/sessions storage/framework/views storage/logs bootstrap/cache \
     && chown -R www-data:www-data /var/www \
@@ -65,21 +63,27 @@ sed -i "s/listen \[::\]:80;/listen \[::\]:${PORT:-80};/g" /etc/nginx/sites-avail
 chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache\n\
 chmod -R 775 /var/www/storage /var/www/bootstrap/cache\n\
 \n\
-# Run Laravel setup\n\
-php artisan config:clear\n\
-php artisan cache:clear\n\
-php artisan view:clear\n\
-php artisan route:clear\n\
-\n\
 # Generate key if not exists\n\
 if [ -z "$APP_KEY" ]; then\n\
     php artisan key:generate --force\n\
 fi\n\
 \n\
-# Run migrations\n\
-php artisan migrate --force || true\n\
+# Wait for database to be ready (if PostgreSQL)\n\
+if [ "$DB_CONNECTION" = "pgsql" ]; then\n\
+    echo "Waiting for PostgreSQL to be ready..."\n\
+    until PGPASSWORD=$DB_PASSWORD psql -h "$DB_HOST" -U "$DB_USERNAME" -d "$DB_DATABASE" -c "SELECT 1" > /dev/null 2>&1; do\n\
+        echo "PostgreSQL is unavailable - sleeping"\n\
+        sleep 2\n\
+    done\n\
+    echo "PostgreSQL is ready!"\n\
+fi\n\
 \n\
-# Cache configurations\n\
+# Run migrations only if database is configured\n\
+if [ "$DB_CONNECTION" != "sqlite" ] || [ -f "/var/www/database/database.sqlite" ]; then\n\
+    php artisan migrate --force || echo "Migration failed, continuing..."\n\
+fi\n\
+\n\
+# Cache configurations only after database is ready\n\
 php artisan config:cache\n\
 php artisan route:cache\n\
 php artisan view:cache\n\
