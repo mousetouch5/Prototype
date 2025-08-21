@@ -1,9 +1,13 @@
 # Multi-stage build for React app
 FROM node:18-alpine AS frontend-builder
 WORKDIR /app
-COPY frontend/package*.json ./
+# Copy package files explicitly
+COPY frontend/package.json ./package.json
+COPY frontend/package-lock.json ./package-lock.json
 # Install with legacy peer deps to resolve version conflicts
-RUN npm ci --legacy-peer-deps
+# Use npm install as fallback if ci fails
+RUN npm ci --legacy-peer-deps || npm install --legacy-peer-deps
+# Copy the rest of frontend files
 COPY frontend/ ./
 # Set production environment for React build
 ENV NODE_ENV=production
