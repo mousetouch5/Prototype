@@ -12,6 +12,7 @@ COPY frontend/ ./
 # Set production environment for React build
 ENV NODE_ENV=production
 ENV REACT_APP_API_URL=/api
+ENV PUBLIC_URL=/
 RUN npm run build
 
 # Main application stage
