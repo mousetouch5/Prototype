@@ -6,6 +6,7 @@ Route::get('/health', function () {
     return response('OK', 200);
 });
 
-Route::get('/', function () {
-    return view('welcome');
-});
+// Serve React app for all routes
+Route::get('/{any}', function () {
+    return view('react');
+})->where('any', '.*');

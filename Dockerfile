@@ -1,3 +1,15 @@
+# Multi-stage build for React app
+FROM node:18-alpine AS frontend-builder
+WORKDIR /app
+COPY frontend/package*.json ./
+RUN npm ci
+COPY frontend/ ./
+# Set production environment for React build
+ENV NODE_ENV=production
+ENV REACT_APP_API_URL=/api
+RUN npm run build
+
+# Main application stage
 FROM php:8.2-fpm
 
 # Set environment variables
@@ -40,6 +52,9 @@ fi
 
 # Install dependencies
 RUN composer install --no-dev --optimize-autoloader
+
+# Copy React build from frontend-builder stage
+COPY --from=frontend-builder /app/build /var/www/public/build
 
 # Copy nginx configuration
 COPY docker/nginx.conf /etc/nginx/sites-available/default
