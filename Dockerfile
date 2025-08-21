@@ -33,6 +33,11 @@ WORKDIR /var/www
 # Copy application files
 COPY . /var/www
 
+# Copy .env.example as .env if .env doesn't exist
+RUN if [ ! -f /var/www/.env ] && [ -f /var/www/.env.example ]; then \
+    cp /var/www/.env.example /var/www/.env; \
+fi
+
 # Install dependencies
 RUN composer install --no-dev --optimize-autoloader
 
@@ -59,12 +64,38 @@ set -e\n\
 sed -i "s/listen 80;/listen ${PORT:-80};/g" /etc/nginx/sites-available/default\n\
 sed -i "s/listen \[::\]:80;/listen \[::\]:${PORT:-80};/g" /etc/nginx/sites-available/default\n\
 \n\
+# Create .env file from environment variables if it doesnt exist\n\
+if [ ! -f /var/www/.env ]; then\n\
+    echo "Creating .env file from environment variables..."\n\
+    touch /var/www/.env\n\
+    echo "APP_NAME=\"${APP_NAME:-Laravel}\"" >> /var/www/.env\n\
+    echo "APP_ENV=${APP_ENV:-production}" >> /var/www/.env\n\
+    echo "APP_KEY=${APP_KEY:-}" >> /var/www/.env\n\
+    echo "APP_DEBUG=${APP_DEBUG:-false}" >> /var/www/.env\n\
+    echo "APP_URL=${APP_URL:-http://localhost}" >> /var/www/.env\n\
+    echo "" >> /var/www/.env\n\
+    echo "LOG_CHANNEL=${LOG_CHANNEL:-stack}" >> /var/www/.env\n\
+    echo "LOG_LEVEL=${LOG_LEVEL:-error}" >> /var/www/.env\n\
+    echo "" >> /var/www/.env\n\
+    echo "DB_CONNECTION=${DB_CONNECTION:-pgsql}" >> /var/www/.env\n\
+    echo "DB_HOST=${DB_HOST:-127.0.0.1}" >> /var/www/.env\n\
+    echo "DB_PORT=${DB_PORT:-5432}" >> /var/www/.env\n\
+    echo "DB_DATABASE=${DB_DATABASE:-laravel}" >> /var/www/.env\n\
+    echo "DB_USERNAME=${DB_USERNAME:-root}" >> /var/www/.env\n\
+    echo "DB_PASSWORD=${DB_PASSWORD:-}" >> /var/www/.env\n\
+    echo "" >> /var/www/.env\n\
+    echo "SESSION_DRIVER=${SESSION_DRIVER:-file}" >> /var/www/.env\n\
+    echo "CACHE_STORE=${CACHE_STORE:-file}" >> /var/www/.env\n\
+    echo "QUEUE_CONNECTION=${QUEUE_CONNECTION:-sync}" >> /var/www/.env\n\
+fi\n\
+\n\
 # Ensure storage permissions\n\
 chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache\n\
 chmod -R 775 /var/www/storage /var/www/bootstrap/cache\n\
 \n\
 # Generate key if not exists\n\
-if [ -z "$APP_KEY" ]; then\n\
+if [ -z "$APP_KEY" ] || [ "$APP_KEY" = "" ]; then\n\
+    echo "Generating application key..."\n\
     php artisan key:generate --force\n\
 fi\n\
 \n\
