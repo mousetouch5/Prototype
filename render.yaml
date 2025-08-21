@@ -2,7 +2,7 @@ services:
   # Backend Laravel API
   - type: web
     name: clickup-sync-backend
-    runtime: php
+    env: php
     plan: starter
     buildCommand: ./build.sh
     startCommand: php artisan serve --host=0.0.0.0 --port=$PORT
@@ -49,7 +49,7 @@ services:
   # Frontend React App
   - type: web
     name: clickup-sync-frontend
-    runtime: node
+    env: node
     buildCommand: cd frontend && npm ci && npm run build
     startCommand: npx serve -s build -l $PORT
     envVars:
