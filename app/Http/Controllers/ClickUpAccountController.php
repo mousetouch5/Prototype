@@ -92,11 +92,29 @@ class ClickUpAccountController extends Controller
     {
         try {
             $user = auth()->user();
-            \Log::info('Delete attempt', [
-                'user_id' => $user->id,
+            
+            // Detailed debugging
+            \Log::info('Delete attempt - Debug Info', [
+                'authenticated_user' => $user ? $user->toArray() : null,
+                'user_id' => $user ? $user->id : null,
+                'user_id_type' => $user ? gettype($user->id) : null,
                 'account_id' => $account->id,
                 'account_user_id' => $account->user_id,
-                'match' => $user->id === $account->user_id
+                'account_user_id_type' => gettype($account->user_id),
+                'strict_match' => $user && $user->id === $account->user_id,
+                'loose_match' => $user && $user->id == $account->user_id,
+                'account_data' => $account->toArray()
+            ]);
+            
+            if (!$user) {
+                \Log::error('No authenticated user found for delete operation');
+                return response()->json(['error' => 'User not authenticated'], 401);
+            }
+            
+            \Log::info('About to authorize delete', [
+                'policy_exists' => class_exists('App\\Policies\\ClickUpAccountPolicy'),
+                'user_id' => $user->id,
+                'account_user_id' => $account->user_id
             ]);
             
             $this->authorize('delete', $account);

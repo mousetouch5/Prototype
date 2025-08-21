@@ -22,6 +22,18 @@ class ClickUpAccountPolicy
 
     public function delete(User $user, ClickUpAccount $account)
     {
-        return $user->id === $account->user_id;
+        $result = $user->id === $account->user_id;
+        
+        \Log::info('ClickUpAccountPolicy::delete called', [
+            'user_id' => $user->id,
+            'user_id_type' => gettype($user->id),
+            'account_user_id' => $account->user_id,
+            'account_user_id_type' => gettype($account->user_id),
+            'strict_match' => $user->id === $account->user_id,
+            'loose_match' => $user->id == $account->user_id,
+            'result' => $result
+        ]);
+        
+        return $result;
     }
 }
