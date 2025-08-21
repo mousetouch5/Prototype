@@ -56,16 +56,6 @@ class MondayAccount extends Model
             ->where('target_platform', 'monday');
     }
 
-    public function syncConfigurations()
-    {
-        return SyncConfiguration::where(function($query) {
-            $query->where('source_account_id', $this->id)
-                  ->where('source_platform', 'monday');
-        })->orWhere(function($query) {
-            $query->where('target_account_id', $this->id)
-                  ->where('target_platform', 'monday');
-        });
-    }
 
     public function setAccessTokenAttribute($value): void
     {

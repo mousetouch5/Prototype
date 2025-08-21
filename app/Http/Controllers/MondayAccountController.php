@@ -109,10 +109,26 @@ class MondayAccountController extends Controller
             $this->authorize('delete', $account);
             
             // Check if account is being used in sync configurations
-            if ($account->syncConfigurations()->count() > 0) {
-                return response()->json([
-                    'error' => 'Cannot delete account that is being used in sync configurations. Please delete the sync configurations first.'
-                ], 422);
+            try {
+                $syncCount = \DB::table('sync_configurations')
+                    ->where(function($query) use ($account) {
+                        $query->where('source_account_id', $account->id)
+                              ->where('source_platform', 'monday');
+                    })
+                    ->orWhere(function($query) use ($account) {
+                        $query->where('target_account_id', $account->id)
+                              ->where('target_platform', 'monday');
+                    })
+                    ->count();
+                    
+                if ($syncCount > 0) {
+                    return response()->json([
+                        'error' => 'Cannot delete account that is being used in sync configurations. Please delete the sync configurations first.'
+                    ], 422);
+                }
+            } catch (\Exception $e) {
+                // If sync_configurations table doesn't exist, continue with deletion
+                \Log::info('sync_configurations table check failed, continuing with deletion: ' . $e->getMessage());
             }
             
             $account->delete();
@@ -120,8 +136,9 @@ class MondayAccountController extends Controller
             return response()->json(['message' => 'Account deleted successfully']);
         } catch (\Exception $e) {
             \Log::error('Failed to delete Monday account: ' . $e->getMessage());
+            \Log::error('Error details: ' . $e->getTraceAsString());
             return response()->json([
-                'error' => 'Failed to delete account. Please try again.'
+                'error' => 'Failed to delete account: ' . $e->getMessage()
             ], 500);
         }
     }
