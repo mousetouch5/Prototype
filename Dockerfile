@@ -1,5 +1,8 @@
 FROM php:8.2-fpm
 
+# Set environment variables
+ENV DEBIAN_FRONTEND=noninteractive
+
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
     git \
@@ -43,8 +46,15 @@ RUN mkdir -p storage/app/public storage/framework/cache storage/framework/sessio
     && chown -R www-data:www-data /var/www \
     && chmod -R 775 storage bootstrap/cache
 
-# Expose port
-EXPOSE 80
+# Create startup script
+RUN echo '#!/bin/bash\n\
+sed -i "s/listen 80;/listen ${PORT:-80};/g" /etc/nginx/sites-available/default\n\
+sed -i "s/listen \[::\]:80;/listen \[::\]:${PORT:-80};/g" /etc/nginx/sites-available/default\n\
+php artisan migrate --force\n\
+php artisan config:cache\n\
+php artisan route:cache\n\
+php artisan view:cache\n\
+/usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf' > /start.sh && chmod +x /start.sh
 
 # Start services
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
+CMD ["/start.sh"]
