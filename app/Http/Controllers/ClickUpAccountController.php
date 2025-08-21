@@ -91,6 +91,14 @@ class ClickUpAccountController extends Controller
     public function destroy(ClickUpAccount $account)
     {
         try {
+            $user = auth()->user();
+            \Log::info('Delete attempt', [
+                'user_id' => $user->id,
+                'account_id' => $account->id,
+                'account_user_id' => $account->user_id,
+                'match' => $user->id === $account->user_id
+            ]);
+            
             $this->authorize('delete', $account);
             
             // Check if account is being used in sync configurations
@@ -113,6 +121,16 @@ class ClickUpAccountController extends Controller
             $account->delete();
 
             return response()->json(['message' => 'Account deleted successfully']);
+        } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
+            \Log::error('Authorization failed for delete ClickUp account', [
+                'user_id' => auth()->user()->id,
+                'account_id' => $account->id,
+                'account_user_id' => $account->user_id,
+                'error' => $e->getMessage()
+            ]);
+            return response()->json([
+                'error' => 'You can only delete your own accounts.'
+            ], 403);
         } catch (\Exception $e) {
             \Log::error('Failed to delete ClickUp account: ' . $e->getMessage());
             \Log::error('Error details: ' . $e->getTraceAsString());
