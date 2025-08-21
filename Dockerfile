@@ -98,12 +98,23 @@ if [ ! -f /var/www/.env ]; then\n\
     echo "LOG_CHANNEL=${LOG_CHANNEL:-stack}" >> /var/www/.env\n\
     echo "LOG_LEVEL=${LOG_LEVEL:-error}" >> /var/www/.env\n\
     echo "" >> /var/www/.env\n\
-    echo "DB_CONNECTION=${DB_CONNECTION:-pgsql}" >> /var/www/.env\n\
-    echo "DB_HOST=${DB_HOST:-127.0.0.1}" >> /var/www/.env\n\
-    echo "DB_PORT=${DB_PORT:-5432}" >> /var/www/.env\n\
-    echo "DB_DATABASE=${DB_DATABASE:-laravel}" >> /var/www/.env\n\
-    echo "DB_USERNAME=${DB_USERNAME:-root}" >> /var/www/.env\n\
-    echo "DB_PASSWORD=${DB_PASSWORD:-}" >> /var/www/.env\n\
+    # Only set database defaults if not already provided by Render\n\
+    if [ -z "$DB_HOST" ]; then\n\
+        echo "DB_CONNECTION=${DB_CONNECTION:-pgsql}" >> /var/www/.env\n\
+        echo "DB_HOST=127.0.0.1" >> /var/www/.env\n\
+        echo "DB_PORT=5432" >> /var/www/.env\n\
+        echo "DB_DATABASE=laravel" >> /var/www/.env\n\
+        echo "DB_USERNAME=root" >> /var/www/.env\n\
+        echo "DB_PASSWORD=" >> /var/www/.env\n\
+    else\n\
+        echo "Using Render database environment variables..."\n\
+        echo "DB_CONNECTION=${DB_CONNECTION}" >> /var/www/.env\n\
+        echo "DB_HOST=${DB_HOST}" >> /var/www/.env\n\
+        echo "DB_PORT=${DB_PORT}" >> /var/www/.env\n\
+        echo "DB_DATABASE=${DB_DATABASE}" >> /var/www/.env\n\
+        echo "DB_USERNAME=${DB_USERNAME}" >> /var/www/.env\n\
+        echo "DB_PASSWORD=${DB_PASSWORD}" >> /var/www/.env\n\
+    fi\n\
     echo "" >> /var/www/.env\n\
     echo "SESSION_DRIVER=${SESSION_DRIVER:-file}" >> /var/www/.env\n\
     echo "CACHE_STORE=${CACHE_STORE:-file}" >> /var/www/.env\n\
@@ -120,14 +131,27 @@ if [ -z "$APP_KEY" ] || [ "$APP_KEY" = "" ]; then\n\
     php artisan key:generate --force\n\
 fi\n\
 \n\
+# Show database configuration for debugging\n\
+echo "Database configuration:"\n\
+echo "DB_CONNECTION: $DB_CONNECTION"\n\
+echo "DB_HOST: $DB_HOST"\n\
+echo "DB_PORT: $DB_PORT"\n\
+echo "DB_DATABASE: $DB_DATABASE"\n\
+echo "DB_USERNAME: $DB_USERNAME"\n\
+echo "DB_PASSWORD: [${#DB_PASSWORD} chars]"\n\
+\n\
 # Wait for database to be ready (if PostgreSQL)\n\
-if [ "$DB_CONNECTION" = "pgsql" ]; then\n\
-    echo "Waiting for PostgreSQL to be ready..."\n\
-    until PGPASSWORD=$DB_PASSWORD psql -h "$DB_HOST" -U "$DB_USERNAME" -d "$DB_DATABASE" -c "SELECT 1" > /dev/null 2>&1; do\n\
-        echo "PostgreSQL is unavailable - sleeping"\n\
-        sleep 2\n\
+if [ "$DB_CONNECTION" = "pgsql" ] && [ -n "$DB_HOST" ]; then\n\
+    echo "Waiting for PostgreSQL to be ready at $DB_HOST:$DB_PORT..."\n\
+    for i in {1..30}; do\n\
+        if PGPASSWORD=$DB_PASSWORD psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USERNAME" -d "$DB_DATABASE" -c "SELECT 1" > /dev/null 2>&1; then\n\
+            echo "PostgreSQL is ready!"\n\
+            break\n\
+        else\n\
+            echo "PostgreSQL is unavailable (attempt $i/30) - sleeping 2s"\n\
+            sleep 2\n\
+        fi\n\
     done\n\
-    echo "PostgreSQL is ready!"\n\
 fi\n\
 \n\
 # Test database connection\n\
