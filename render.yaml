@@ -2,10 +2,10 @@ services:
   # Backend Laravel API
   - type: web
     name: clickup-sync-backend
-    env: php
+    env: docker
     plan: starter
-    buildCommand: ./build.sh
-    startCommand: php artisan serve --host=0.0.0.0 --port=$PORT
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
     envVars:
       - key: APP_NAME
         value: "ClickUp Sync Dashboard"
