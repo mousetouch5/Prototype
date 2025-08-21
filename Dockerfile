@@ -2,7 +2,8 @@
 FROM node:18-alpine AS frontend-builder
 WORKDIR /app
 COPY frontend/package*.json ./
-RUN npm ci
+# Install with legacy peer deps to resolve version conflicts
+RUN npm ci --legacy-peer-deps
 COPY frontend/ ./
 # Set production environment for React build
 ENV NODE_ENV=production
