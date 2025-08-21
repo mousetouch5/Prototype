@@ -92,7 +92,7 @@ if [ ! -f /var/www/.env ]; then\n\
     echo "APP_NAME=\"${APP_NAME:-Laravel}\"" >> /var/www/.env\n\
     echo "APP_ENV=${APP_ENV:-production}" >> /var/www/.env\n\
     echo "APP_KEY=${APP_KEY:-}" >> /var/www/.env\n\
-    echo "APP_DEBUG=${APP_DEBUG:-false}" >> /var/www/.env\n\
+    echo "APP_DEBUG=${APP_DEBUG:-true}" >> /var/www/.env\n\
     echo "APP_URL=${APP_URL:-http://localhost}" >> /var/www/.env\n\
     echo "" >> /var/www/.env\n\
     echo "LOG_CHANNEL=${LOG_CHANNEL:-stack}" >> /var/www/.env\n\
@@ -130,9 +130,19 @@ if [ "$DB_CONNECTION" = "pgsql" ]; then\n\
     echo "PostgreSQL is ready!"\n\
 fi\n\
 \n\
+# Test database connection\n\
+echo "Testing database connection..."\n\
+php artisan tinker --execute="echo \\DB::connection()->getPDO() ? \"Database connected\" : \"Database failed\";" || echo "Database connection test failed"\n\
+\n\
 # Run migrations only if database is configured\n\
 if [ "$DB_CONNECTION" != "sqlite" ] || [ -f "/var/www/database/database.sqlite" ]; then\n\
-    php artisan migrate --force || echo "Migration failed, continuing..."\n\
+    echo "Running migrations..."\n\
+    php artisan migrate --force\n\
+    echo "Migration status:"\n\
+    php artisan migrate:status\n\
+    echo "Checking if critical tables exist:"\n\
+    php artisan tinker --execute="echo \\Schema::hasTable(\"users\") ? \"users: OK\" : \"users: MISSING\";"\n\
+    php artisan tinker --execute="echo \\Schema::hasTable(\"personal_access_tokens\") ? \"tokens: OK\" : \"tokens: MISSING\";"\n\
 fi\n\
 \n\
 # Cache configurations only after database is ready\n\

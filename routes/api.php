@@ -8,6 +8,24 @@ use App\Http\Controllers\GanttController;
 use Illuminate\Support\Facades\Route;
 
 // Public routes
+Route::get('/test-db', function () {
+    try {
+        \DB::connection()->getPDO();
+        $tablesExist = \Schema::hasTable('users') && \Schema::hasTable('personal_access_tokens');
+        return response()->json([
+            'database' => 'connected',
+            'tables_exist' => $tablesExist,
+            'users_table' => \Schema::hasTable('users'),
+            'tokens_table' => \Schema::hasTable('personal_access_tokens'),
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'database' => 'failed',
+            'error' => $e->getMessage(),
+        ], 500);
+    }
+});
+
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 
