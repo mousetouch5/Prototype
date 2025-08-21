@@ -1,7 +1,7 @@
 services:
-  # Backend Laravel API
+  # Full-stack Laravel + React App
   - type: web
-    name: clickup-sync-backend
+    name: clickup-sync-app
     env: docker
     plan: starter
     dockerfilePath: ./Dockerfile
@@ -45,21 +45,6 @@ services:
         value: stack
       - key: LOG_LEVEL
         value: error
-
-  # Frontend React App
-  - type: web
-    name: clickup-sync-frontend
-    env: node
-    buildCommand: cd frontend && npm ci && npm run build
-    startCommand: npx serve -s build -l $PORT
-    envVars:
-      - key: NODE_ENV
-        value: production
-      - key: REACT_APP_API_URL
-        fromService:
-          type: web
-          name: clickup-sync-backend
-          property: host
 
 # Database
 databases:

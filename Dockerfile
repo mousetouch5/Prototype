@@ -98,22 +98,23 @@ if [ ! -f /var/www/.env ]; then\n\
     echo "LOG_CHANNEL=${LOG_CHANNEL:-stack}" >> /var/www/.env\n\
     echo "LOG_LEVEL=${LOG_LEVEL:-error}" >> /var/www/.env\n\
     echo "" >> /var/www/.env\n\
-    # Only set database defaults if not already provided by Render\n\
-    if [ -z "$DB_HOST" ]; then\n\
-        echo "DB_CONNECTION=${DB_CONNECTION:-pgsql}" >> /var/www/.env\n\
-        echo "DB_HOST=127.0.0.1" >> /var/www/.env\n\
-        echo "DB_PORT=5432" >> /var/www/.env\n\
-        echo "DB_DATABASE=laravel" >> /var/www/.env\n\
-        echo "DB_USERNAME=root" >> /var/www/.env\n\
-        echo "DB_PASSWORD=" >> /var/www/.env\n\
-    else\n\
+    # Database configuration with fallbacks\n\
+    echo "DB_CONNECTION=${DB_CONNECTION:-pgsql}" >> /var/www/.env\n\
+    if [ -n "$DB_HOST" ] && [ "$DB_HOST" != "" ]; then\n\
         echo "Using Render database environment variables..."\n\
-        echo "DB_CONNECTION=${DB_CONNECTION}" >> /var/www/.env\n\
         echo "DB_HOST=${DB_HOST}" >> /var/www/.env\n\
-        echo "DB_PORT=${DB_PORT}" >> /var/www/.env\n\
-        echo "DB_DATABASE=${DB_DATABASE}" >> /var/www/.env\n\
-        echo "DB_USERNAME=${DB_USERNAME}" >> /var/www/.env\n\
+        echo "DB_PORT=${DB_PORT:-5432}" >> /var/www/.env\n\
+        echo "DB_DATABASE=${DB_DATABASE:-clickup_sync}" >> /var/www/.env\n\
+        echo "DB_USERNAME=${DB_USERNAME:-clickup_user}" >> /var/www/.env\n\
         echo "DB_PASSWORD=${DB_PASSWORD}" >> /var/www/.env\n\
+    else\n\
+        echo "WARNING: No database environment variables found. Using SQLite fallback."\n\
+        echo "DB_CONNECTION=sqlite" >> /var/www/.env\n\
+        echo "DB_DATABASE=/var/www/database/database.sqlite" >> /var/www/.env\n\
+        # Create SQLite database file\n\
+        mkdir -p /var/www/database\n\
+        touch /var/www/database/database.sqlite\n\
+        chown -R www-data:www-data /var/www/database\n\
     fi\n\
     echo "" >> /var/www/.env\n\
     echo "SESSION_DRIVER=${SESSION_DRIVER:-file}" >> /var/www/.env\n\
@@ -141,7 +142,7 @@ echo "DB_USERNAME: $DB_USERNAME"\n\
 echo "DB_PASSWORD: [${#DB_PASSWORD} chars]"\n\
 \n\
 # Wait for database to be ready (if PostgreSQL)\n\
-if [ "$DB_CONNECTION" = "pgsql" ] && [ -n "$DB_HOST" ]; then\n\
+if [ "$DB_CONNECTION" = "pgsql" ] && [ -n "$DB_HOST" ] && [ "$DB_HOST" != "" ]; then\n\
     echo "Waiting for PostgreSQL to be ready at $DB_HOST:$DB_PORT..."\n\
     for i in {1..30}; do\n\
         if PGPASSWORD=$DB_PASSWORD psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USERNAME" -d "$DB_DATABASE" -c "SELECT 1" > /dev/null 2>&1; then\n\
@@ -152,6 +153,8 @@ if [ "$DB_CONNECTION" = "pgsql" ] && [ -n "$DB_HOST" ]; then\n\
             sleep 2\n\
         fi\n\
     done\n\
+elif [ "$DB_CONNECTION" = "sqlite" ]; then\n\
+    echo "Using SQLite database - no connection wait needed."\n\
 fi\n\
 \n\
 # Test database connection\n\
